@@ -15,9 +15,12 @@ const path = require("path");
 // 配置: 忽略的目录和文件
 const IGNORE_PATTERNS = [
   ".git",
+  ".github",
+  ".gitignore",
   ".DS_Store",
   "node_modules",
   "generate-index.js",
+  "generate-diff.js",
 ];
 
 // 检查是否应该忽略
