@@ -38,6 +38,9 @@ jobs:
       - name: Generate index.html files
         run: node generate-index.js
 
+      - name: Generate diff.md
+        run: node generate-diff.js
+
       - name: Setup Pages
         uses: actions/configure-pages@v4
 
