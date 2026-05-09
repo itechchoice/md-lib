@@ -3,7 +3,7 @@
 # 此文件由 generate-diff.js 自动生成，用于 AI Agent 解析
 # 格式遵循结构化 Markdown + YAML frontmatter
 
-generated_at: "2026-05-09T13:24:07.563Z"
+generated_at: "2026-05-09T13:33:11.990Z"
 format_version: "1.0"
 schema: "agent-readable-diff"
 

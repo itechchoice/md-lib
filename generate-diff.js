@@ -11,7 +11,7 @@ const path = require('path');
 const crypto = require('crypto');
 
 // 配置
-const IGNORE_PATTERNS = ['.git', '.DS_Store', 'node_modules', 'index.html', '.github'];
+const IGNORE_PATTERNS = ['.git', '.DS_Store', 'node_modules', 'index.html', '.github', 'llms.txt', 'README.md'];
 const VERSION_PATTERN = /^(.+?)\s*v?([\d.]+)$/;
 
 // 生成文件内容的哈希值

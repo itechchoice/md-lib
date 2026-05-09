@@ -1,0 +1,34 @@
+# md-lib
+
+> 一个统一管理 Markdown 与相关静态资源（HTML 幻灯片、图片等）的文档库，部署到 GitHub Pages 后可被人类浏览，也方便大模型 / Agent 随时按需抓取。
+
+仓库由两类东西组成：
+
+1. **资源**：按主题分目录存放的 `*.md` 与配套 HTML 文件。
+2. **生成器脚本**：`generate-index.js` 给每个目录生成 `index.html` 目录索引；`generate-diff.js` 扫描以版本号命名的目录（如 `xxx v1.3.1`）产出 `diff.md` 版本差异报告。两者都在 GitHub Actions 部署时自动执行。
+
+便于 Agent 正确解析的关键约定：
+
+- 任何目录下的 `index.html` 都是**自动生成的目录列表**，不是内容来源；真正内容在同级的 `*.md` 与命名明确的 HTML 文件（如 `presentation.html`）中。
+- `generate-diff.js` 只识别名字符合 `^(.+?)\s*v?([\d.]+)$` 的目录作为版本目录；不匹配的目录不会出现在 `diff.md` 里。
+- 站点根：`https://itechchoice.github.io/md-lib/`，下文链接基于该地址。
+- 添加新目录或文件后，请同步在本文件追加对应链接。
+
+## Meta
+
+- [README](https://itechchoice.github.io/md-lib/README.md): 项目说明、目录结构、本地使用与 GitHub Pages 自动部署流程。
+- [Version Diff Report](https://itechchoice.github.io/md-lib/diff.md): 由 `generate-diff.js` 自动生成的版本差异报告（YAML frontmatter，便于 Agent 解析；当前无版本目录，内容为空模板属正常）。
+
+## ABC-Prime
+
+- [ABC-Prime · 12 个核心用户体验场景 v3.0](https://itechchoice.github.io/md-lib/ABC-Prime/ABC-Prime%2012%20%E4%B8%AA%E6%A0%B8%E5%BF%83%E7%94%A8%E6%88%B7%E4%BD%93%E9%AA%8C%E5%9C%BA%E6%99%AF%20v3.0.md): 文档正文。
+
+## Orchestrated-Forensics
+
+- [场景 5 · 编排式取证](https://itechchoice.github.io/md-lib/Orchestrated-Forensics/%E5%9C%BA%E6%99%AF5-%E7%BC%96%E6%8E%92%E5%BC%8F%E5%8F%96%E8%AF%81.md): Markdown 正文，结构化内容请优先读这一份。
+- [Presentation（HTML 幻灯片）](https://itechchoice.github.io/md-lib/Orchestrated-Forensics/presentation.html): 同主题的 PPT 风格幻灯片，面向人类阅读，结构信息密度低于上面的 `.md`。
+
+## Optional
+
+- [GitHub Repository](https://github.com/itechchoice/md-lib): 源码与 issue。
+- [Deploy Workflow](https://github.com/itechchoice/md-lib/blob/main/.github/workflows/deploy.yml): push 到 `main` 时自动跑生成器并部署到 GitHub Pages。

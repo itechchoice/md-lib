@@ -1,12 +1,13 @@
-# Prometheus DNA Artifacts · md-lib
+# md-lib
 
-> **面向 AI Agent 的文档库**：把 ABC-Prime / Prometheus 体系下的设计文档、场景反推、PPT 演示稿等 Markdown 资产，组织成一个可在浏览器里直接预览、并自带版本差异报告的静态站点。
+> **统一管理 Markdown 与相关静态资源（HTML 幻灯片、图片等）的文档库**。把零散的 `.md` 资产组织成可在浏览器里直接预览、自带版本差异报告、并对大模型 / Agent 友好的静态站点。
 
-本仓库的内容是 **文档** 与 **生成器脚本** 的组合：
+本仓库的内容是 **资源** 与 **生成器脚本** 的组合：
 
-- `*.md` — 真正的设计资产（架构宪法、场景规格、PPT 幻灯片源等）。
+- `*.md` 与配套静态资源（HTML 幻灯片等）— 实际存放的内容。
 - `generate-index.js` — 递归为每个目录生成 `index.html`，把整个仓库变成可点击浏览的目录树。
-- `generate-diff.js` — 扫描以版本号命名的目录（如 `xxx v1.3` / `v1.3.1`），自动产出 `diff.md` 版本差异报告，便于 AI Agent 解析。
+- `generate-diff.js` — 扫描以版本号命名的目录（如 `xxx v1.3` / `v1.3.1`），自动产出 `diff.md` 版本差异报告，便于 Agent 解析。
+- `llms.txt` — 遵循 [llms.txt 提案](https://llmstxt.org/)，给 LLM / Agent 提供一份精炼的项目入口索引（详见下文「面向 LLM / Agent 的入口」）。
 - `.github/workflows/deploy.yml` — push 到 `main`/`master` 时跑这两个脚本并部署到 GitHub Pages。
 
 ---
@@ -22,32 +23,17 @@ md-lib/
 ├── generate-diff.js               # 版本差异生成器
 ├── .github/workflows/deploy.yml   # GitHub Pages 自动部署
 │
-├── ABC-Prime/                     # ABC-Prime 12 个核心用户体验场景
+├── ABC-Prime/                     # 一个主题目录（示例）
 │   ├── index.html                 # 目录索引（自动生成）
-│   └── ABC-Prime 12 个核心用户体验场景 v3.0.md
+│   └── *.md                       # 该主题下的 Markdown 资源
 │
-└── Orchestrated-Forensics/        # 场景 ⑤「编排式取证」反推文档 + 幻灯片
+└── Orchestrated-Forensics/        # 另一个主题目录（示例）
     ├── index.html                 # 目录索引（自动生成）
-    ├── 场景5-编排式取证.md         # 场景反推系统文档
-    └── presentation.html          # PPT 风格的可演示幻灯片（独立 HTML）
+    ├── *.md                       # 该主题下的 Markdown 资源
+    └── presentation.html          # 配套的 PPT 风格幻灯片（独立 HTML）
 ```
 
-> **关于 `presentation.html`**：`Orchestrated-Forensics/presentation.html` 是一份用纯 HTML/CSS/JS 模拟的 PPT 演示稿（带字体、动效、背景画布），原本以 `index.html` 命名会和目录索引冲突，现统一约定为 `presentation.html`，目录索引会自动给出指向它的链接。
-
----
-
-## 当前内容
-
-### 1. `ABC-Prime/` — 产品定位与场景目录
-
-`ABC-Prime 12 个核心用户体验场景 v3.0.md`：面向金融机构的对外销售/演示版本，定义了 ABC-Prime 作为**意图驱动 AI 执行系统**的核心架构对象（Business Contract / Nomos / Prometheus / EB / EP / Hermes / Gateway / Mnem / Atlas / Scheduler）和 12 个端到端用户场景。
-
-### 2. `Orchestrated-Forensics/` — 场景 ⑤「编排式取证」
-
-把 `ABC-Prime` 中的「编排式取证」单独拆出来反推工程契约：
-
-- `场景5-编排式取证.md`：执行摘要、行为链、契约清单（Evidence Pack Schema、政策版本快照绑定、独立完整性验证工具）等。
-- `presentation.html`：同一主题的 PPT 风格幻灯片，可直接在浏览器全屏播放。
+> **关于 `presentation.html`**：当某个主题需要附带富 HTML 资源（例如用 HTML/CSS/JS 模拟的 PPT 幻灯片），命名为 `presentation.html`、`slides.html` 之类即可，**不要叫 `index.html`**——同名文件会被目录索引生成器覆盖。
 
 ---
 
@@ -116,6 +102,18 @@ python3 -m http.server 8080
    - 想加 PPT 风格演示？写一个独立的 `presentation.html`（不要叫 `index.html`，会被目录索引覆盖）。
 2. **本地预跑**（可选）：`node generate-index.js && node generate-diff.js`，浏览器打开 `index.html` 检查。
 3. **提交到 main**：CI 自动重新生成索引并部署到 GitHub Pages。
+
+---
+
+## 面向 LLM / Agent 的入口
+
+仓库根目录提供一份 [`llms.txt`](./llms.txt)，遵循 [llmstxt.org](https://llmstxt.org/) 提案：
+
+- 路径固定为 `/llms.txt`（与 `robots.txt`、`sitemap.xml` 同级），部署后访问地址：`https://itechchoice.github.io/md-lib/llms.txt`。
+- 内容是 Markdown：`H1 项目名 → 摘要 blockquote → 说明段落 → 一组 H2 链接区块`，每条链接附简短描述。
+- 适合的使用方式：让 Agent 先抓 `llms.txt` 了解仓库结构与约定，再按需要去抓具体的 `.md`，避免盲目爬整站。
+
+新增 / 重命名核心文档时，记得同步更新 `llms.txt` 里的链接和描述（这一步目前是手动的，未来如有需要可以再做一个生成器自动维护）。
 
 ---
 
