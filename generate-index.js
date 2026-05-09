@@ -21,7 +21,6 @@ const IGNORE_PATTERNS = [
   "node_modules",
   "generate-index.js",
   "generate-diff.js",
-  "llms.txt",
 ];
 
 // 检查是否应该忽略
