@@ -1,6 +1,6 @@
 # Prometheus DNA Artifacts · md-lib
 
-> **面向 AI Agent 的金融级文档库**：把 ABC-Prime / Prometheus 体系下的设计文档、场景反推、PPT 演示稿等 Markdown 资产，组织成一个可在浏览器里直接预览、并自带版本差异报告的静态站点。
+> **面向 AI Agent 的文档库**：把 ABC-Prime / Prometheus 体系下的设计文档、场景反推、PPT 演示稿等 Markdown 资产，组织成一个可在浏览器里直接预览、并自带版本差异报告的静态站点。
 
 本仓库的内容是 **文档** 与 **生成器脚本** 的组合：
 
