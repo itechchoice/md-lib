@@ -1,0 +1,1468 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>编排式取证 · 场景反推系统文档 · ABC-Prime</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,700&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,400&family=IBM+Plex+Mono:wght@300;400;500;600&family=Noto+Serif+SC:wght@300;400;500;600;700;900&family=Noto+Sans+SC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* ============ 主题色 · 🌊 靛蓝瓷 (Indigo Porcelain) ============ */
+    --ink:#0a1f3d;
+    --ink-rgb:10,31,61;
+    --paper:#f1f3f5;
+    --paper-rgb:241,243,245;
+    --paper-tint:#e4e8ec;
+    --ink-tint:#152a4a;
+
+    /* ============ 字体 ============ */
+    --mono:"IBM Plex Mono",ui-monospace,monospace;
+    --serif-en:"Playfair Display","Source Serif 4",Georgia,serif;
+    --serif-body-en:"Source Serif 4",Georgia,serif;
+    --serif-zh:"Noto Serif SC",source-han-serif-sc,serif;
+    --sans-zh:"Noto Sans SC",source-han-sans-sc,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{width:100%;height:100%;overflow:hidden;background:var(--ink);color:var(--paper);font-family:var(--sans-zh);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+
+  canvas.bg{position:fixed;inset:0;width:100vw;height:100vh;z-index:0;display:block;transition:opacity 1.2s ease}
+  canvas#bg-light{opacity:0}
+  canvas#bg-dark{opacity:1}
+  body.light-bg canvas#bg-light{opacity:1}
+  body.light-bg canvas#bg-dark{opacity:0}
+
+  #deck{position:fixed;inset:0;width:10000vw;height:100vh;display:flex;flex-wrap:nowrap;transition:transform .9s cubic-bezier(.77,0,.175,1);z-index:10;will-change:transform}
+  .slide{width:100vw;height:100vh;flex:0 0 100vw;position:relative;padding:6vh 6vw 10vh 6vw;display:flex;flex-direction:column;overflow:hidden}
+  .slide.light{color:var(--ink)}
+  .slide.dark{color:var(--paper)}
+
+  .slide::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;transition:background .7s ease}
+  .slide.light::before{background:rgba(var(--paper-rgb),.78);backdrop-filter:blur(3px)}
+  .slide.dark::before{background:rgba(var(--ink-rgb),.78);backdrop-filter:blur(3px)}
+  .slide.hero.light::before{background:rgba(var(--paper-rgb),.16);backdrop-filter:none}
+  .slide.hero.dark::before{background:rgba(var(--ink-rgb),.12);backdrop-filter:none}
+  .slide.hero::after{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none}
+  .slide.hero.light::after{background:linear-gradient(180deg,rgba(var(--paper-rgb),.28) 0%,rgba(var(--paper-rgb),0) 14%,rgba(var(--paper-rgb),0) 86%,rgba(var(--paper-rgb),.28) 100%)}
+  .slide.hero.dark::after{background:linear-gradient(180deg,rgba(var(--ink-rgb),.32) 0%,rgba(var(--ink-rgb),0) 14%,rgba(var(--ink-rgb),0) 86%,rgba(var(--ink-rgb),.32) 100%)}
+
+  .chrome{display:flex;justify-content:space-between;align-items:flex-start;font-family:var(--mono);font-size:max(11px,.78vw);letter-spacing:.2em;text-transform:uppercase;opacity:.62}
+  .chrome .left,.chrome .right{display:flex;gap:2.4em;align-items:center}
+  .chrome .sep{width:40px;height:1px;background:currentColor;opacity:.4}
+  .foot{margin-top:auto;display:flex;justify-content:space-between;align-items:flex-end;font-family:var(--mono);font-size:max(11px,.78vw);letter-spacing:.18em;text-transform:uppercase;opacity:.5}
+  .foot .title{font-family:var(--serif-zh);font-weight:400;letter-spacing:.05em;text-transform:none;opacity:.75;font-size:13px}
+
+  .tag{display:inline-block;font-family:var(--mono);font-size:11px;letter-spacing:.24em;text-transform:uppercase;padding:6px 14px;border:1px solid currentColor;opacity:.85}
+  .rule{width:100%;height:1px;background:currentColor;opacity:.25;margin:3vh 0}
+  .rule.v{width:1px;height:100%;margin:0}
+
+  .kicker{font-family:var(--mono);font-size:max(11px,.85vw);letter-spacing:.3em;text-transform:uppercase;opacity:.6;margin-bottom:2.6vh}
+  .display{font-family:var(--serif-en);font-weight:700;font-size:11vw;line-height:.92;letter-spacing:-.025em}
+  .display-zh{font-family:var(--serif-zh);font-weight:700;font-size:7.8vw;line-height:1.04;letter-spacing:-.005em}
+  .h1-zh{font-family:var(--serif-zh);font-weight:700;font-size:4.6vw;line-height:1.12;letter-spacing:-.005em}
+  .h2-zh{font-family:var(--serif-zh);font-weight:600;font-size:3.2vw;line-height:1.2;letter-spacing:0}
+  .h3-zh{font-family:var(--serif-zh);font-weight:500;font-size:1.9vw;line-height:1.35}
+  .body-zh{font-family:var(--sans-zh);font-weight:400;font-size:max(15px,1.22vw);line-height:1.75;opacity:.82;letter-spacing:.01em}
+  .body-serif{font-family:var(--serif-zh);font-weight:400;font-size:max(15px,1.3vw);line-height:1.65;opacity:.88}
+  .meta{font-family:var(--mono);font-size:max(11px,.88vw);letter-spacing:.16em;text-transform:uppercase;opacity:.6}
+  .big-num{font-family:var(--serif-en);font-weight:800;font-size:10vw;line-height:.85;letter-spacing:-.03em;font-feature-settings:"tnum"}
+  .mid-num{font-family:var(--serif-en);font-weight:700;font-size:5.5vw;line-height:.88;letter-spacing:-.02em;font-feature-settings:"tnum"}
+  .ghost{font-family:var(--serif-en);font-weight:900;font-size:34vw;line-height:.8;opacity:.06;letter-spacing:-.04em;position:absolute;font-feature-settings:"tnum"}
+  em{font-style:italic;font-family:var(--serif-en)}
+  .en{font-family:var(--serif-en);font-style:italic;font-weight:500}
+
+  .col{display:flex;flex-direction:column;gap:2.4vh}
+  .row{display:flex;align-items:center;gap:3vw}
+  .grid-6{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(2,1fr);gap:4vw 6vw;flex:1;align-content:center;padding:2vh 0}
+  .grid-9{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:3vh 4vw;flex:1;align-content:center}
+  .grid-4{display:grid;grid-template-columns:repeat(2,1fr);grid-template-rows:repeat(2,1fr);gap:4vh 6vw;flex:1;align-content:center}
+  .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:4vw;flex:1;align-content:center}
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:4vw;flex:1;align-items:center}
+  .split-55{display:grid;grid-template-columns:55fr 45fr;gap:5vw;flex:1;align-items:stretch}
+  .fill{flex:1}
+  .center{align-items:center;justify-content:center;text-align:center}
+  .bottom-left{position:absolute;left:6vw;bottom:9vh;max-width:50vw}
+  .bottom-right{position:absolute;right:6vw;bottom:9vh;max-width:50vw;text-align:right}
+  .top-right{position:absolute;right:6vw;top:6vh;text-align:right}
+
+  .stat{display:flex;flex-direction:column;gap:1vh;align-items:flex-start}
+  .stat .n{font-family:var(--serif-en);font-weight:800;font-size:8vw;line-height:.88;letter-spacing:-.03em;font-feature-settings:"tnum"}
+  .stat .l{font-family:var(--sans-zh);font-size:max(13px,1.05vw);opacity:.7;margin-top:1vh;font-weight:400;line-height:1.5}
+  .stat .m{font-family:var(--mono);font-size:10px;letter-spacing:.22em;text-transform:uppercase;opacity:.5;margin-bottom:.2vh}
+
+  .callout{padding:3vh 2.4vw;border-left:3px solid currentColor;position:relative;font-family:var(--serif-zh);font-size:max(15px,1.2vw);line-height:1.55;opacity:.92}
+  .slide.light .callout{background:rgba(var(--ink-rgb),.05)}
+  .slide.dark .callout{background:rgba(var(--paper-rgb),.06)}
+  .callout .cite{display:block;margin-top:1.6vh;font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;opacity:.6}
+  .callout .q-big{font-family:var(--serif-zh);font-weight:600;font-size:max(17px,1.6vw);line-height:1.42}
+
+  .plat{display:flex;flex-direction:column;justify-content:flex-end;padding:2vh 0;border-top:1px solid currentColor;border-color:rgba(127,127,127,.35)}
+  .plat .name{font-family:var(--serif-zh);font-weight:700;font-size:1.8vw;margin-bottom:.6vh}
+  .plat .nb{font-family:var(--serif-en);font-weight:700;font-size:3.2vw;letter-spacing:-.02em;line-height:1;font-feature-settings:"tnum"}
+  .plat .sub{font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;opacity:.55;margin-top:.6vh}
+  .plat .fill{font-family:var(--sans-zh);font-weight:300;font-size:2.4vw;opacity:.28;letter-spacing:-.01em;line-height:1}
+
+  .rowline{display:grid;grid-template-columns:1fr 2fr 1fr;gap:2vw;padding:2.2vh 0;border-top:1px solid currentColor;align-items:center;border-color:rgba(127,127,127,.25)}
+  .rowline:last-child{border-bottom:1px solid currentColor;border-color:rgba(127,127,127,.25)}
+  .rowline .k{font-family:var(--serif-zh);font-weight:700;font-size:1.7vw}
+  .rowline .v{font-family:var(--sans-zh);font-weight:400;font-size:max(14px,1.2vw);opacity:.85;line-height:1.55}
+  .rowline .m{font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;opacity:.6;justify-self:end}
+
+  .pillar{display:flex;flex-direction:column;gap:1.8vh}
+  .pillar .ic{font-family:var(--serif-en);font-style:italic;font-size:2.6vw;opacity:.45;font-weight:400}
+  .pillar .ic svg{width:2.8vw;height:2.8vw;stroke-width:1.2;opacity:.7}
+  .pillar .t{font-family:var(--serif-zh);font-weight:700;font-size:2.4vw;line-height:1.1}
+  .pillar .d{font-family:var(--sans-zh);font-weight:400;font-size:max(14px,1.1vw);opacity:.76;line-height:1.6}
+
+  .sign{font-family:var(--serif-en);font-style:italic;font-weight:500;font-size:2vw;opacity:.7}
+  .hi{position:relative;display:inline}
+  .slide.dark .hi::after{content:"";position:absolute;left:-.1em;right:-.1em;bottom:-.05em;height:.28em;background:rgba(var(--paper-rgb),.15);z-index:-1}
+  .slide.light .hi::after{content:"";position:absolute;left:-.1em;right:-.1em;bottom:-.05em;height:.28em;background:rgba(var(--ink-rgb),.08);z-index:-1}
+
+  .ico{width:1em;height:1em;display:inline-block;vertical-align:-.12em;stroke:currentColor;fill:none;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+
+  /* ============ Layout API ============ */
+  .frame{flex:1;display:flex;flex-direction:column;min-height:0}
+  .frame.grid-2-7-5,
+  .frame.grid-2-6-6,
+  .frame.grid-2-8-4,
+  .frame.grid-3-3,
+  .frame.grid-6{display:grid}
+
+  .h-hero{font-family:var(--serif-zh);font-weight:900;font-size:10vw;line-height:.96;letter-spacing:-.02em}
+  .h-xl{font-family:var(--serif-zh);font-weight:700;font-size:6.2vw;line-height:1.08;letter-spacing:-.01em}
+  .h-sub{font-family:var(--serif-zh);font-weight:500;font-size:3.1vw;line-height:1.25;letter-spacing:0;opacity:.7}
+  .h-md{font-family:var(--serif-zh);font-weight:600;font-size:2.3vw;line-height:1.3}
+  .h-hero-en,.h-xl-en{font-family:var(--serif-en);letter-spacing:-.025em}
+
+  .lead{font-family:var(--serif-zh);font-weight:400;font-size:1.75vw;line-height:1.5;opacity:.86}
+
+  .meta-row{display:flex;gap:1.2em;align-items:baseline;flex-wrap:wrap;font-family:var(--mono);font-size:max(12px,.92vw);letter-spacing:.16em;text-transform:uppercase;opacity:.6}
+
+  .stat-card{display:flex;flex-direction:column;gap:.8vh;align-items:flex-start;padding-top:1.6vh;border-top:1px solid currentColor;border-color:rgba(127,127,127,.3)}
+  .stat-card .stat-label{font-family:var(--mono);font-size:max(10px,.78vw);letter-spacing:.24em;text-transform:uppercase;opacity:.55}
+  .stat-card .stat-nb{font-family:var(--serif-en);font-weight:800;font-size:5.8vw;line-height:.9;letter-spacing:-.03em;font-feature-settings:"tnum";margin-top:.4vh}
+  .stat-card .stat-nb .stat-unit{font-family:var(--serif-zh);font-weight:500;font-size:.38em;letter-spacing:0;opacity:.72;margin-left:.14em}
+  .stat-card .stat-note{font-family:var(--sans-zh);font-weight:400;font-size:max(13px,1.05vw);line-height:1.5;opacity:.72;margin-top:.6vh}
+  .grid-4 .stat-card .stat-nb{font-size:7.5vw}
+  .grid-3 .stat-card .stat-nb{font-size:6.8vw}
+
+  .pipeline-section{margin-top:4.4vh;padding-top:2.8vh;border-top:1px dashed rgba(127,127,127,.32)}
+  .pipeline-section:first-of-type{border-top:0;padding-top:0;margin-top:3vh}
+  .pipeline-label{font-family:var(--mono);font-size:max(11px,.85vw);letter-spacing:.24em;text-transform:uppercase;opacity:.62;margin-bottom:2.2vh}
+  .pipeline{display:grid;grid-template-columns:repeat(5,1fr);gap:1.2vw}
+  .pipeline[data-cols="3"]{grid-template-columns:repeat(3,1fr)}
+  .pipeline[data-cols="4"]{grid-template-columns:repeat(4,1fr)}
+  .pipeline[data-cols="6"]{grid-template-columns:repeat(6,1fr)}
+  .pipeline[data-cols="2"]{grid-template-columns:repeat(2,1fr)}
+  .step{display:flex;flex-direction:column;gap:.8vh;padding-top:1.4vh;border-top:1px solid currentColor;border-color:rgba(127,127,127,.35)}
+  .step-nb{font-family:var(--serif-en);font-style:italic;font-weight:500;font-size:1.15vw;opacity:.45}
+  .step-title{font-family:var(--sans-zh);font-weight:700;font-size:1.55vw;letter-spacing:.01em;line-height:1.2}
+  .step-desc{font-family:var(--sans-zh);font-weight:400;font-size:max(12px,.95vw);line-height:1.45;opacity:.72}
+
+  .grid-2-7-5{display:grid;grid-template-columns:7fr 5fr;gap:3vw 4vh;align-items:start}
+  .grid-2-6-6{display:grid;grid-template-columns:1fr 1fr;gap:3vw 4vh;align-items:start}
+  .grid-2-8-4{display:grid;grid-template-columns:8fr 4fr;gap:3vw 4vh;align-items:start}
+  .grid-3-3{display:grid;grid-template-columns:repeat(3,1fr);grid-auto-rows:minmax(0,1fr);gap:2.4vh 2vw}
+  .grid-4-2{display:grid;grid-template-columns:repeat(4,1fr);grid-auto-rows:minmax(0,1fr);gap:2.4vh 1.8vw}
+
+  .callout-src{display:block;margin-top:1.6vh;font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;opacity:.6}
+
+  /* ============ 状态机连线（自定义） ============ */
+  .state-flow{display:flex;align-items:center;gap:.6vw;flex-wrap:wrap;font-family:var(--mono);font-size:max(11px,.95vw);letter-spacing:.16em;text-transform:uppercase}
+  .state-flow .node{padding:.9vh 1vw;border:1px solid currentColor;border-color:rgba(127,127,127,.55);border-radius:2px}
+  .state-flow .node.terminal{border-style:dashed;opacity:.7}
+  .state-flow .arr{opacity:.5}
+
+  /* ============ RACI 表 ============ */
+  .raci{display:grid;grid-template-columns:2.2fr 1fr 1fr 1.4fr 1.4fr;gap:0;border-top:1px solid currentColor;border-color:rgba(127,127,127,.4);font-family:var(--sans-zh);font-size:max(12px,1.05vw);line-height:1.45}
+  .raci > div{padding:1.6vh 1vw;border-bottom:1px solid rgba(127,127,127,.22);min-width:0}
+  .raci .head{font-family:var(--mono);font-size:max(10px,.78vw);letter-spacing:.22em;text-transform:uppercase;opacity:.6;border-bottom:1px solid rgba(127,127,127,.4)}
+  .raci .doc{font-family:var(--serif-zh);font-weight:600;font-size:max(13px,1.15vw);opacity:.95}
+  .raci .last{border-bottom:1px solid currentColor;border-color:rgba(127,127,127,.4)}
+
+  /* ============ 章节封面大幽灵字 ============ */
+  .ghost-act{position:absolute;right:5vw;top:6vh;font-family:var(--serif-en);font-weight:900;font-size:18vw;line-height:.85;letter-spacing:-.04em;opacity:.07}
+
+  .chrome{font-family:var(--mono);font-size:max(11px,.78vw);letter-spacing:.2em;text-transform:uppercase;opacity:.62}
+  .foot{font-family:var(--mono);font-size:max(11px,.78vw);letter-spacing:.18em;text-transform:uppercase;opacity:.5}
+
+  @media (max-width:900px){
+    .display{font-size:16vw}
+    .display-zh{font-size:12vw}
+    .h1-zh{font-size:7vw}
+    .h-hero{font-size:14vw}
+    .h-xl{font-size:9vw}
+    .pipeline{grid-template-columns:repeat(2,1fr)}
+    .grid-2-7-5,.grid-2-6-6,.grid-2-8-4{grid-template-columns:1fr}
+    .grid-4-2{grid-template-columns:repeat(2,1fr)}
+    .raci{grid-template-columns:2fr 1fr 1fr;font-size:11px}
+    .raci > div:nth-child(5n+4),.raci > div:nth-child(5n+5){display:none}
+  }
+</style>
+</head>
+<body>
+
+<canvas id="bg-dark" class="bg"></canvas>
+<canvas id="bg-light" class="bg"></canvas>
+<div id="hint" style="position:fixed;bottom:3vh;right:3vw;z-index:30;font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;opacity:.4;mix-blend-mode:difference;color:#aaa">← → 翻页 · ESC 索引</div>
+
+<div id="deck">
+
+<!-- ===================== 1 · COVER ===================== -->
+<section class="slide hero dark">
+  <div class="chrome">
+    <div>ABC-Prime · Scenario ⑤</div>
+    <div>Vol.01 · 2026</div>
+  </div>
+  <div class="ghost-act">⑤</div>
+  <div class="frame" style="display:grid; gap:4vh; align-content:center; min-height:78vh">
+    <div class="kicker">场景反推 · 系统文档</div>
+    <h1 class="h-hero">编排式取证</h1>
+    <h2 class="h-sub">Orchestrated Forensics · 把 AI 输出升级为交易系统级可证</h2>
+    <p class="lead" style="max-width:62vw">
+      合规官 60 秒回答"为什么当时允许"。<br>
+      跨 Mnem / Nomos / Hermes / Gateway 四个 Prime 子系统的工程契约反推。
+    </p>
+    <div class="meta-row">
+      <span>Mnem</span><span>·</span><span>Nomos</span><span>·</span><span>Hermes</span><span>·</span><span>Gateway</span><span>·</span><span>Audit Surface</span>
+    </div>
+  </div>
+  <div class="foot">
+    <div class="title">基于 ABC-Prime 12 个核心用户体验场景 v3.0 · 第四部分 ⑤ + 第六部分 ⑤</div>
+    <div>— Forensics —</div>
+  </div>
+</section>
+
+<!-- ===================== 2 · CORE JUDGMENT ===================== -->
+<section class="slide hero light">
+  <div class="chrome">
+    <div>Section I · 场景判断</div>
+    <div>02 / 22</div>
+  </div>
+  <div class="frame" style="display:grid; gap:5vh; align-content:center; min-height:80vh">
+    <div class="kicker">The Core Judgment · 核心判断</div>
+    <h1 class="h-hero" style="font-size:8.4vw; line-height:1.02">
+      真正的交付物，<br>
+      不是 <span class="hi">UI</span>。
+    </h1>
+    <p class="lead" style="max-width:60vw">
+      是一组治理契约 + 一个不可变性的工程证明 + 一个独立验证工具。<br>
+      UI 只是这些契约的可视化外壳——契约不齐，UI 再好看也撑不起合规问询。
+    </p>
+    <div class="meta-row">
+      <span>Contracts</span><span>·</span><span>Immutability Proof</span><span>·</span><span>Independent Verifier</span>
+    </div>
+  </div>
+  <div class="foot">
+    <div>Page 02 · 核心判断</div>
+    <div>— · —</div>
+  </div>
+</section>
+
+<!-- ===================== 3 · EXECUTIVE SUMMARY (BIG NUMBERS) ===================== -->
+<section class="slide light">
+  <div class="chrome">
+    <div>Section I · 执行摘要</div>
+    <div>03 / 22</div>
+  </div>
+  <div class="frame" style="padding-top:5vh">
+    <div class="kicker">Executive Summary · 一份缺失的工程契约</div>
+    <h2 class="h-xl">门票场景，三方各说各话。</h2>
+    <p class="lead" style="margin-top:2vh; max-width:64vw; opacity:.78">
+      场景 ⑤ 是 ABC-Prime 进入金融机构销售的<span class="hi">门票</span>——目前缺一份把 Mnem / Nomos / Hermes / Gateway 绑死的工程契约。工程、合规、审计三方各说各话。
+    </p>
+
+    <div class="grid-3" style="margin-top:7vh">
+      <div class="stat-card">
+        <div class="stat-label">Subsystems Crossed</div>
+        <div class="stat-nb">4</div>
+        <div class="stat-note">Mnem · Nomos · Hermes · Gateway —— 任何一个独自动手都会破坏不变量</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">SLA · Inquiry to Evidence</div>
+        <div class="stat-nb">60<span class="stat-unit">秒</span></div>
+        <div class="stat-note">从被标记 Execution 到节点级证据可视化的产品承诺</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Contracts to Pilot</div>
+        <div class="stat-nb">3</div>
+        <div class="stat-note">EP Schema · Nomos × Mnem 快照绑定 · 独立验证工具——最小集</div>
+      </div>
+    </div>
+  </div>
+  <div class="foot">
+    <div>Page 03 · 执行摘要</div>
+    <div>Section I · Summary</div>
+  </div>
+</section>
+
+<!-- ===================== 4 · THE SETUP ===================== -->
+<section class="slide dark">
+  <div class="chrome">
+    <div>Section I · 场景设定</div>
+    <div>04 / 22</div>
+  </div>
+  <div class="frame grid-2-7-5" style="padding-top:6vh">
+    <div style="display:flex; flex-direction:column; justify-content:space-between; gap:3vh; min-height:64vh">
+      <div>
+        <div class="kicker">The Setup · Marcus 的 60 秒</div>
+        <h2 class="h-xl" style="font-size:6.2vw">
+          60 秒，<br>证明执行时刻合规。
+        </h2>
+        <p class="lead" style="margin-top:3vh; max-width:36vw">
+          合规官 Marcus 接到客户 X 持仓超限问询。普通 AI 工具只留对话日志；传统投顾只有人工注释——都无法回答<span class="hi">"当时适用哪个 IPS 版本、每节点输入输出是否被篡改"</span>。
+        </p>
+      </div>
+      <div class="meta-row">
+        <span>Marcus / 合规官 · 主调用方</span>
+        <span>·</span>
+        <span>Lin / 顾问 · 被审查方</span>
+        <span>·</span>
+        <span>FINRA · SEC · 内审 / 最终读者</span>
+      </div>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:2.4vh">
+      <div class="kicker" style="margin:0">Constraints · 约束条件</div>
+      <div class="callout">
+        <div class="q-big">红线 6 · 新规则不改旧证据</div>
+        <div class="callout-src">Retroactive rewrite is forbidden</div>
+      </div>
+      <div class="callout">
+        <div class="q-big">红线 1 · 蓝图冻结</div>
+        <div class="callout-src">Blueprint frozen at execution</div>
+      </div>
+      <div class="callout">
+        <div class="q-big">红线 5 · 不允许 runtime fallback</div>
+        <div class="callout-src">No silent recovery path</div>
+      </div>
+      <div class="callout">
+        <div class="q-big">EP 不可变 · 只能 append</div>
+        <div class="callout-src">Append-only, byte-immutable</div>
+      </div>
+    </div>
+  </div>
+  <div class="foot">
+    <div>Page 04 · 场景设定</div>
+    <div>Section I · Setup</div>
+  </div>
+</section>
+
+<!-- ===================== 5 · FIVE SUB-SCENARIOS ===================== -->
+<section class="slide light">
+  <div class="chrome">
+    <div>Section I · 子场景</div>
+    <div>05 / 22</div>
+  </div>
+  <div class="frame">
+    <div class="kicker">Five Sub-scenarios · 5.1 → 5.5</div>
+    <h2 class="h-xl">五个子场景，三条链。</h2>
+
+    <div class="pipeline-section">
+      <div class="pipeline-label">Read-only · 只读取证主链</div>
+      <div class="pipeline" data-cols="3">
+        <div class="step">
+          <div class="step-nb">5.1</div>
+          <div class="step-title">调取与重建执行图</div>
+          <div class="step-desc">Marcus 60s 内拿到完整 DAG · 仅追加 viewed 事件</div>
+        </div>
+        <div class="step">
+          <div class="step-nb">5.2</div>
+          <div class="step-title">节点级证据钻取</div>
+          <div class="step-desc">看到当时绑定的 IPS 版本与 hash · 节点证据卡片</div>
+        </div>
+        <div class="step">
+          <div class="step-nb">5.3</div>
+          <div class="step-title">完整性独立验证</div>
+          <div class="step-desc">运行 Verify Integrity · 生成完整性证书</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pipeline-section">
+      <div class="pipeline-label">Append-only · 处置链 · 与 · 确定性 Replay</div>
+      <div class="pipeline" data-cols="2">
+        <div class="step">
+          <div class="step-nb">5.4</div>
+          <div class="step-title">审查处置（追加而非覆盖）</div>
+          <div class="step-desc">标记"已通过（政策过渡期良性差异）" · 创建新 audit_record 引用原 EP · audit-subtype EP</div>
+        </div>
+        <div class="step">
+          <div class="step-nb">5.5</div>
+          <div class="step-title">确定性历史 Replay</div>
+          <div class="step-desc">触发 Hermes historical replay · 在原上下文/数据 hash/模型版本下复算 · 输出 hash 必须一致</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="foot">
+    <div>Page 05 · 子场景</div>
+    <div>Section I · Sub-scenarios</div>
+  </div>
+</section>
+
+<!-- ===================== 6 · BEHAVIOR CHAIN ===================== -->
+<section class="slide dark">
+  <div class="chrome">
+    <div>Section I · 行为链</div>
+    <div>06 / 22</div>
+  </div>
+  <div class="frame">
+    <div class="kicker">Behavior Chain · 从 Inbox 到取证完毕</div>
+    <h2 class="h-xl" style="margin-bottom:1vh">一条主线，三条分支。</h2>
+
+    <div class="pipeline-section">
+      <div class="pipeline-label">Mainline · 取证主线（只读）</div>
+      <div class="pipeline" data-cols="6">
+        <div class="step">
+          <div class="step-nb">01</div>
+          <div class="step-title">Flagged</div>
+          <div class="step-desc">Compliance Inbox 标记被审查 Execution</div>
+        </div>
+        <div class="step">
+          <div class="step-nb">02</div>
+          <div class="step-title">Open</div>
+          <div class="step-desc">Marcus 进入 Audit Surface（只读）</div>
+        </div>
+        <div class="step">
+          <div class="step-nb">03</div>
+          <div class="step-title">Rebuild DAG</div>
+          <div class="step-desc">Mnem 基于事件流 + Merkle root 重建</div>
+        </div>
+        <div class="step">
+          <div class="step-nb">04</div>
+          <div class="step-title">Bind Snapshot</div>
+          <div class="step-desc">绑定执行时刻的 Nomos 政策版本快照</div>
+        </div>
+        <div class="step">
+          <div class="step-nb">05</div>
+          <div class="step-title">Drill</div>
+          <div class="step-desc">节点级证据钻取 · Capability + I/O hash</div>
+        </div>
+        <div class="step">
+          <div class="step-nb">06</div>
+          <div class="step-title">Verify ✓</div>
+          <div class="step-desc">独立验证工具 verify(EP) → 完整性证书</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pipeline-section">
+      <div class="pipeline-label">Branches · Marcus 决策三分支</div>
+      <div class="pipeline" data-cols="3">
+        <div class="step">
+          <div class="step-nb">A</div>
+          <div class="step-title">通过</div>
+          <div class="step-desc">append audit_record（新 EP_audit，原 EP 字节不变）</div>
+        </div>
+        <div class="step">
+          <div class="step-nb">B</div>
+          <div class="step-title">升级</div>
+          <div class="step-desc">触发 Hermes historical replay</div>
+        </div>
+        <div class="step">
+          <div class="step-nb">C</div>
+          <div class="step-title">归档</div>
+          <div class="step-desc">通知 Lin · 新审计事件进入 Mnem Trace · 成为下一次审查的取证对象</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="foot">
+    <div>Page 06 · 行为链</div>
+    <div>Section I · Flow</div>
+  </div>
+</section>
+
+<!-- ===================== 7 · THREE LANES ===================== -->
+<section class="slide light">
+  <div class="chrome">
+    <div>Section I · 三条链</div>
+    <div>07 / 22</div>
+  </div>
+  <div class="frame">
+    <div class="kicker">Three Lanes · 一份事件流，三种用法</div>
+    <h2 class="h-xl" style="margin-bottom:5vh">共用同一个不可变事件流，<br>权限边界完全不同。</h2>
+
+    <div class="grid-3" style="align-content:start">
+      <div style="border-top:3px solid currentColor; padding-top:2vh; display:flex; flex-direction:column; gap:1.6vh">
+        <div class="kicker" style="margin:0">Lane 1 · Read-only</div>
+        <h3 class="h-md">只读取证主链</h3>
+        <p class="body-zh" style="opacity:.78">5.1 调取重建 · 5.2 节点钻取 · 5.3 独立验证。任何"读"都只能向 Mnem 追加 viewed 事件，绝不修改 EP。</p>
+        <div class="meta-row" style="margin-top:auto">5.1 · 5.2 · 5.3</div>
+      </div>
+      <div style="border-top:3px solid currentColor; padding-top:2vh; display:flex; flex-direction:column; gap:1.6vh">
+        <div class="kicker" style="margin:0">Lane 2 · Append-only</div>
+        <h3 class="h-md">处置链</h3>
+        <p class="body-zh" style="opacity:.78">5.4 审查处置作为 audit-subtype EP 写入，引用原 EP 但永不覆盖。处置本身也是一份证据，可被未来再次审查。</p>
+        <div class="meta-row" style="margin-top:auto">5.4 · audit_record</div>
+      </div>
+      <div style="border-top:3px solid currentColor; padding-top:2vh; display:flex; flex-direction:column; gap:1.6vh">
+        <div class="kicker" style="margin:0">Lane 3 · Deterministic Replay</div>
+        <h3 class="h-md">确定性历史 Replay</h3>
+        <p class="body-zh" style="opacity:.78">5.5 在原上下文 / 数据 hash / 模型版本下复算，输出 hash 必须一致——最高强度证明。不调用新一轮 LLM 推理。</p>
+        <div class="meta-row" style="margin-top:auto">5.5 · Hermes Replay</div>
+      </div>
+    </div>
+  </div>
+  <div class="foot">
+    <div>Page 07 · 三条链</div>
+    <div>Section I · Three Lanes</div>
+  </div>
+</section>
+
+<!-- ===================== 8 · PART II DIVIDER ===================== -->
+<section class="slide hero dark">
+  <div class="chrome">
+    <div>Part II · 领域模型</div>
+    <div>Act II · 08 / 22</div>
+  </div>
+  <div class="ghost-act">II</div>
+  <div class="frame" style="display:grid; gap:6vh; align-content:center; min-height:80vh">
+    <div class="kicker">Part II</div>
+    <h1 class="h-hero" style="font-size:9vw">领域模型</h1>
+    <h2 class="h-sub">Domain Model · 对象 · 关系 · 状态机</h2>
+    <p class="lead" style="max-width:60vw">
+      把红线翻译成对象，把承诺锁进状态迁移。
+    </p>
+  </div>
+  <div class="foot">
+    <div>第二部分引子</div>
+    <div>— · —</div>
+  </div>
+</section>
+
+<!-- ===================== 9 · DOMAIN OBJECTS ===================== -->
+<section class="slide light">
+  <div class="chrome">
+    <div>Part II · 核心对象</div>
+    <div>09 / 22</div>
+  </div>
+  <div class="frame">
+    <div class="kicker">Domain Objects · 真相来源</div>
+    <h2 class="h-xl">十个核心对象，<br>每个都标注真相来源。</h2>
+
+    <div class="grid-4-2" style="margin-top:4vh">
+      <div class="plat">
+        <div class="sub">Source · Hermes</div>
+        <div class="name">Execution</div>
+        <div class="body-zh" style="font-size:max(12px,.95vw); opacity:.7">一次受 EB / EP 约束的固定执行实例</div>
+      </div>
+      <div class="plat">
+        <div class="sub">Source · Mnem</div>
+        <div class="name">Mnem Event</div>
+        <div class="body-zh" style="font-size:max(12px,.95vw); opacity:.7">不可篡改事件原子 · I/O hash · Gateway 决策</div>
+      </div>
+      <div class="plat">
+        <div class="sub">Source · Mnem</div>
+        <div class="name">Mnem Trace</div>
+        <div class="body-zh" style="font-size:max(12px,.95vw); opacity:.7">单 Execution 的事件流序列 · 1:1 ↔ Execution</div>
+      </div>
+      <div class="plat" style="border-top-width:2px">
+        <div class="sub">Source · Mnem 签发</div>
+        <div class="name">Evidence Pack</div>
+        <div class="body-zh" style="font-size:max(12px,.95vw); opacity:.7">Merkle root · 签名 · policy_snapshot_id · 1:1 ↔ Execution</div>
+      </div>
+      <div class="plat">
+        <div class="sub">Source · Nomos</div>
+        <div class="name">Policy Snapshot</div>
+        <div class="body-zh" style="font-size:max(12px,.95vw); opacity:.7">执行时刻冻结 · IPS · 合规规则 · 阈值</div>
+      </div>
+      <div class="plat">
+        <div class="sub">Source · Capability Registry</div>
+        <div class="name">Capability Reference</div>
+        <div class="body-zh" style="font-size:max(12px,.95vw); opacity:.7">EB 中每个节点引用的 Capability ID + 版本</div>
+      </div>
+      <div class="plat">
+        <div class="sub">Source · Mnem (append)</div>
+        <div class="name">Audit Record</div>
+        <div class="body-zh" style="font-size:max(12px,.95vw); opacity:.7">audit-subtype EP · 引用原 EP · 永不修改原 EP</div>
+      </div>
+      <div class="plat">
+        <div class="sub">Source · Hermes Replay</div>
+        <div class="name">Replay Result</div>
+        <div class="body-zh" style="font-size:max(12px,.95vw); opacity:.7">Historical replay 输出与 hash 比对结果</div>
+      </div>
+    </div>
+
+    <div class="meta-row" style="margin-top:3vh; opacity:.55">
+      <span>+ Verification Result · 独立验证工具签发</span>
+      <span>·</span>
+      <span>+ Audit Surface · 合规角色专属只读视图</span>
+    </div>
+  </div>
+  <div class="foot">
+    <div>Page 09 · 核心对象</div>
+    <div>Part II · Objects</div>
+  </div>
+</section>
+
+<!-- ===================== 10 · LIFECYCLE / STATE MACHINE ===================== -->
+<section class="slide dark">
+  <div class="chrome">
+    <div>Part II · 状态机</div>
+    <div>10 / 22</div>
+  </div>
+  <div class="frame">
+    <div class="kicker">Lifecycle · Evidence Pack 生命周期</div>
+    <h2 class="h-xl" style="margin-bottom:3vh">状态只能向前追加，<br>原 EP 字节不变。</h2>
+
+    <div class="pipeline-section" style="margin-top:1vh">
+      <div class="pipeline-label">Evidence Pack · 主线状态</div>
+      <div class="state-flow" style="margin-bottom:1vh">
+        <span class="node terminal">[*]</span><span class="arr">→</span>
+        <span class="node">Sealing</span><span class="arr">→</span>
+        <span class="node">Sealed</span><span class="arr">→</span>
+        <span class="node">Verified</span><span class="arr">→</span>
+        <span class="node">UnderReview</span><span class="arr">→</span>
+        <span class="node">ReviewedWithAudit</span><span class="arr">→</span>
+        <span class="node">Verified</span>
+      </div>
+      <div class="state-flow" style="opacity:.85">
+        <span class="node">UnderReview</span><span class="arr">→</span>
+        <span class="node">Replayed</span><span class="arr">→</span>
+        <span class="node">ReviewedWithAudit</span>
+        <span style="margin-left:1.6vw; opacity:.6">分支 · 触发 Replay 后回收</span>
+      </div>
+      <div class="state-flow" style="opacity:.7; margin-top:1.6vh">
+        <span class="node">Sealed</span><span class="arr">→</span>
+        <span class="node terminal">Compromised</span>
+        <span style="margin-left:1.6vw; opacity:.6">唯一可能让历史 EP 失信的迁移 · 触发安全事件响应</span>
+      </div>
+    </div>
+
+    <div class="pipeline-section">
+      <div class="pipeline-label">Audit Record · 处置生命周期</div>
+      <div class="state-flow">
+        <span class="node terminal">[*]</span><span class="arr">→</span>
+        <span class="node">Drafting</span><span class="arr">→</span>
+        <span class="node">Submitted</span><span class="arr">→</span>
+        <span class="node">Sealed</span>
+        <span style="margin-left:1.6vw; opacity:.6">永不可改 · 可被未来审查再次引用</span>
+      </div>
+    </div>
+
+    <div class="callout" style="margin-top:4vh">
+      <div class="q-big">不变量</div>
+      任何状态迁移<span class="hi">只能向 Mnem 追加新事件</span>，原 EP 字节不可变。<br>
+      Sealed → Compromised 是唯一可能让历史 EP 失信的迁移；一旦发生，整个 Mnem 服务进入安全事件响应。
+      <div class="callout-src">Invariant · Append-only by physical property</div>
+    </div>
+  </div>
+  <div class="foot">
+    <div>Page 10 · 状态机</div>
+    <div>Part II · Lifecycle</div>
+  </div>
+</section>
+
+<!-- ===================== 11 · MODULES ===================== -->
+<section class="slide light">
+  <div class="chrome">
+    <div>Part II · 系统模块</div>
+    <div>11 / 22</div>
+  </div>
+  <div class="frame">
+    <div class="kicker">Modules · 八个模块</div>
+    <h2 class="h-xl" style="margin-bottom:1.6vh">八个模块，一根硬关键路径。</h2>
+    <p class="lead" style="opacity:.72; max-width:60vw; margin-bottom:3vh">
+      Mnem 必须在写入路径上——所有节点产出在落库之前先落 Mnem。任何"先返回结果再补 trace"的优化都违反红线 6。
+    </p>
+
+    <div class="grid-4-2" style="margin-top:1vh">
+      <div class="plat">
+        <div class="sub">Hard critical path</div>
+        <div class="name">Mnem Core</div>
+        <div class="body-zh" style="font-size:max(12px,.95vw); opacity:.7">不可变事件流 · Merkle 签名 · EP 签发。不解释业务，不能在线编辑。</div>
+      </div>
+      <div class="plat">
+        <div class="sub">Observation Surface</div>
+        <div class="name">Audit Surface</div>
+        <div class="body-zh" style="font-size:max(12px,.95vw); opacity:.7">合规角色只读视图。<span class="hi">不能触发原 Execution 重新跑</span>，不能改任何 EP。</div>
+      </div>
+      <div class="plat">
+        <div class="sub">Offline · 销售物料</div>
+        <div class="name">Independent Verifier</div>
+        <div class="body-zh" style="font-size:max(12px,.95vw); opacity:.7">独立于主系统的 CLI + Library。不依赖在线主库；不写入。</div>
+      </div>
+      <div class="plat">
+        <div class="sub">Red Line 6</div>
+        <div class="name">Nomos Snapshotter</div>
+        <div class="body-zh" style="font-size:max(12px,.95vw); opacity:.7">Execution 启动时冻结政策版本快照写入 EP。不能 retroactively 替换。</div>
+      </div>
+      <div class="plat">
+        <div class="sub">Deterministic</div>
+        <div class="name">Hermes Historical Replay</div>
+        <div class="body-zh" style="font-size:max(12px,.95vw); opacity:.7">在原上下文/数据 hash/模型版本下复算。不影响生产，输出与原必须 hash 一致。</div>
+      </div>
+      <div class="plat">
+        <div class="sub">Append-only</div>
+        <div class="name">Audit Record Writer</div>
+        <div class="body-zh" style="font-size:max(12px,.95vw); opacity:.7">把审查处置写为 audit-subtype EP。不能修改被引用 EP。</div>
+      </div>
+      <div class="plat">
+        <div class="sub">Read-only</div>
+        <div class="name">Compliance Dashboard</div>
+        <div class="body-zh" style="font-size:max(12px,.95vw); opacity:.7">异常发现 + 钻取入口。不携带任何写权限到原 EP。</div>
+      </div>
+      <div class="plat">
+        <div class="sub">Bridge</div>
+        <div class="name">Notification Bridge</div>
+        <div class="body-zh" style="font-size:max(12px,.95vw); opacity:.7">通知被审查方 Lin。不暴露处置敏感细节给非授权角色。</div>
+      </div>
+    </div>
+  </div>
+  <div class="foot">
+    <div>Page 11 · 系统模块</div>
+    <div>Part II · Modules</div>
+  </div>
+</section>
+
+<!-- ===================== 12 · PART III DIVIDER ===================== -->
+<section class="slide hero light">
+  <div class="chrome">
+    <div>Part III · 原则与红线</div>
+    <div>Act III · 12 / 22</div>
+  </div>
+  <div class="ghost-act">III</div>
+  <div class="frame" style="display:grid; gap:6vh; align-content:center; min-height:80vh">
+    <div class="kicker">Part III</div>
+    <h1 class="h-hero" style="font-size:9vw">原则与红线</h1>
+    <h2 class="h-sub">Principles · 观察 ≠ 操作</h2>
+    <p class="lead" style="max-width:60vw">
+      政策快照不可解除 · append-only 是物理性质 · AI 在场景 ⑤ 中完全不参与决策。
+    </p>
+  </div>
+  <div class="foot">
+    <div>第三部分引子</div>
+    <div>— · —</div>
+  </div>
+</section>
+
+<!-- ===================== 13 · THREE PRINCIPLES ===================== -->
+<section class="slide dark">
+  <div class="chrome">
+    <div>Part III · 三大原则</div>
+    <div>13 / 22</div>
+  </div>
+  <div class="frame">
+    <div class="kicker">Principles · 产品 / AI / 数据治理</div>
+    <h2 class="h-xl" style="margin-bottom:5vh">三个维度，<br>一条共同的边界。</h2>
+
+    <div class="grid-3" style="align-content:start">
+      <div class="pillar" style="border-top:3px solid currentColor; padding-top:2.4vh">
+        <div class="kicker" style="margin:0">Product · UX</div>
+        <div class="t">观察 ≠ 操作</div>
+        <div class="d">合规官在 Audit Surface 永远只能"看"和"追加新证据"，不能"再跑一次原执行"。</div>
+        <div class="d" style="opacity:.6">60s SLA 是产品承诺；超出即降级先给摘要再补全，但必须显式标注。节点用业务语言命名，每条 AI 输出旁都有 EP 链接。</div>
+      </div>
+      <div class="pillar" style="border-top:3px solid currentColor; padding-top:2.4vh">
+        <div class="kicker" style="margin:0">AI · Behavior</div>
+        <div class="t">不参与决策</div>
+        <div class="d">AI 在场景 ⑤ 中完全不参与决策——没有"AI 帮 Marcus 判断是否合规"。</div>
+        <div class="d" style="opacity:.6">Replay 是确定性算法重放，不调用新一轮 LLM 推理。AI 总结必须显式引用 policy_snapshot_id，不允许仅给自然语言结论。</div>
+      </div>
+      <div class="pillar" style="border-top:3px solid currentColor; padding-top:2.4vh">
+        <div class="kicker" style="margin:0">Data · Governance</div>
+        <div class="t">物理性 append</div>
+        <div class="d">每个 EP 写入时必须冻结 policy_snapshot_id，不允许 NULL。append-only 是 WAL + 对象存储 + 签名链支撑的物理性质，不是约定。</div>
+        <div class="d" style="opacity:.6">审查记录本身也是 EP 的一种 subtype。同一份 EP 必须能被 FINRA / SEC / 内审用各自的 lens 解读，但底层字节相同。</div>
+      </div>
+    </div>
+  </div>
+  <div class="foot">
+    <div>Page 13 · 三大原则</div>
+    <div>Part III · Principles</div>
+  </div>
+</section>
+
+<!-- ===================== 14 · SOURCE OF TRUTH TABLE ===================== -->
+<section class="slide light">
+  <div class="chrome">
+    <div>Part III · 真相来源</div>
+    <div>14 / 22</div>
+  </div>
+  <div class="frame">
+    <div class="kicker">Source of Truth · 八份真相来源</div>
+    <h2 class="h-xl" style="margin-bottom:3vh">每份对象，<br>都有一个明确的维护者。</h2>
+
+    <div style="margin-top:1vh">
+      <div class="rowline">
+        <div class="k">场景 ⑤ 系统宪法</div>
+        <div class="v">定义红线、不变量、状态机——后续所有文档的语义锚点</div>
+        <div class="m">院长 + 合规委员会</div>
+      </div>
+      <div class="rowline">
+        <div class="k">EP Schema 规约</div>
+        <div class="v">字段 · Merkle · 签名 · policy_snapshot_id 绑定 · append-only 规则</div>
+        <div class="m">平台架构 + 合规</div>
+      </div>
+      <div class="rowline">
+        <div class="k">Nomos × Mnem 绑定规约</div>
+        <div class="v">红线 6 的工程实现——执行启动即冻结 snapshot</div>
+        <div class="m">Nomos + Mnem 团队</div>
+      </div>
+      <div class="rowline">
+        <div class="k">独立验证工具规格</div>
+        <div class="v">对外可分发的独立 verify 工具 · CLI + Library + 公钥</div>
+        <div class="m">安全团队</div>
+      </div>
+      <div class="rowline">
+        <div class="k">Historical Replay 规格</div>
+        <div class="v">Hermes 重放的确定性边界 · 与生产隔离</div>
+        <div class="m">Hermes 团队</div>
+      </div>
+      <div class="rowline">
+        <div class="k">Audit Surface UX 规约</div>
+        <div class="v">合规官每日入口 · 60s 动线 · 业务语言命名</div>
+        <div class="m">设计 + 合规</div>
+      </div>
+      <div class="rowline">
+        <div class="k">测试与验收脚本</div>
+        <div class="v">五条验收：60s SLA · 完整性 · 快照 · append-only · replay 一致</div>
+        <div class="m">QA + 合规</div>
+      </div>
+      <div class="rowline">
+        <div class="k">跨监管口径映射</div>
+        <div class="v">FINRA / SEC / 内审三类问询模板的标准答辩</div>
+        <div class="m">合规 + 法务</div>
+      </div>
+    </div>
+  </div>
+  <div class="foot">
+    <div>Page 14 · 真相来源</div>
+    <div>Part III · Source of Truth</div>
+  </div>
+</section>
+
+<!-- ===================== 15 · PART IV DIVIDER ===================== -->
+<section class="slide hero dark">
+  <div class="chrome">
+    <div>Part IV · 交付物清单</div>
+    <div>Act IV · 15 / 22</div>
+  </div>
+  <div class="ghost-act">IV</div>
+  <div class="frame" style="display:grid; gap:6vh; align-content:center; min-height:80vh">
+    <div class="kicker">Part IV</div>
+    <h1 class="h-hero" style="font-size:9vw">交付物清单</h1>
+    <h2 class="h-sub">Deliverables · 21 份文档 · 4 个层级</h2>
+    <p class="lead" style="max-width:60vw">
+      按优先级排序。每一份都绑回某条原则、某条红线或某个验收标准——没有"凑数"的文档。
+    </p>
+  </div>
+  <div class="foot">
+    <div>第四部分引子</div>
+    <div>— · —</div>
+  </div>
+</section>
+
+<!-- ===================== 16 · P0 MINIMUM SET ===================== -->
+<section class="slide light">
+  <div class="chrome">
+    <div>Part IV · P0 最小集</div>
+    <div>16 / 22</div>
+  </div>
+  <div class="frame">
+    <div class="kicker">P0 · 进入金融机构试点的最小集（必须齐）</div>
+    <h2 class="h-xl" style="margin-bottom:1.4vh">D1 — D8 · 八份契约。</h2>
+    <p class="lead" style="opacity:.7; max-width:60vw; margin-bottom:3vh">
+      治理 · 工程契约 · UX · 治理与审计——这八份齐了，金融机构试点可以谈。
+    </p>
+
+    <div class="grid-4-2">
+      <div class="plat">
+        <div class="sub">D1 · Markdown</div>
+        <div class="name">系统宪法</div>
+        <div class="body-zh" style="font-size:max(12px,.95vw); opacity:.7">统一表达红线 1/5/6 + 5 条绝对红线 + 5 条验收标准</div>
+      </div>
+      <div class="plat" style="border-top-width:2px">
+        <div class="sub">D2 · Markdown + JSON Schema</div>
+        <div class="name">EP Schema 规约 v1</div>
+        <div class="body-zh" style="font-size:max(12px,.95vw); opacity:.7">字段 · Merkle · 签名算法 · policy_snapshot_id 绑定 · append-only</div>
+      </div>
+      <div class="plat" style="border-top-width:2px">
+        <div class="sub">D3 · Markdown + 时序图</div>
+        <div class="name">Nomos × Mnem 绑定</div>
+        <div class="body-zh" style="font-size:max(12px,.95vw); opacity:.7">工程化实现红线 6——执行启动即冻结 snapshot 写入 EP</div>
+      </div>
+      <div class="plat" style="border-top-width:2px">
+        <div class="sub">D4 · 规格 + 参考实现骨架</div>
+        <div class="name">独立验证工具</div>
+        <div class="body-zh" style="font-size:max(12px,.95vw); opacity:.7">EP 离线验证能力作为对外销售物料；CIO / IT 安全可独立运行</div>
+      </div>
+      <div class="plat">
+        <div class="sub">D5 · Markdown</div>
+        <div class="name">不可变事件流持久化规约</div>
+        <div class="body-zh" style="font-size:max(12px,.95vw); opacity:.7">WAL + 对象存储 + 签名链；明确"在线不可改"的物理边界</div>
+      </div>
+      <div class="plat">
+        <div class="sub">D6 · Figma + 文案库</div>
+        <div class="name">Audit Surface UX 规约</div>
+        <div class="body-zh" style="font-size:max(12px,.95vw); opacity:.7">Marcus 60s 动线 · 显式区分只读/append · 节点业务语言命名</div>
+      </div>
+      <div class="plat">
+        <div class="sub">D7 · Markdown + JSON Schema</div>
+        <div class="name">审查处置规约</div>
+        <div class="body-zh" style="font-size:max(12px,.95vw); opacity:.7">audit-subtype EP · 引用原 EP · 永不修改原 EP</div>
+      </div>
+      <div class="plat">
+        <div class="sub">D8 · 表格</div>
+        <div class="name">角色与权限矩阵</div>
+        <div class="body-zh" style="font-size:max(12px,.95vw); opacity:.7">合规官 / 顾问 / 管理员 / 法务 / 外审——锁死"观察 ≠ 操作"</div>
+      </div>
+    </div>
+  </div>
+  <div class="foot">
+    <div>Page 16 · P0 最小集</div>
+    <div>Part IV · P0</div>
+  </div>
+</section>
+
+<!-- ===================== 17 · P0-P1 BANKING-GRADE MVP ===================== -->
+<section class="slide dark">
+  <div class="chrome">
+    <div>Part IV · P0-P1 补强</div>
+    <div>17 / 22</div>
+  </div>
+  <div class="frame">
+    <div class="kicker">P0-P1 · Banking-grade MVP "卡脖子"补强</div>
+    <h2 class="h-xl" style="margin-bottom:1.4vh">D9 — D13 · 五份补强。</h2>
+    <p class="lead" style="opacity:.78; max-width:62vw; margin-bottom:4vh">
+      P0 决定"能不能谈"，这五份决定"能不能落"。威胁模型与跨监管口径映射是销售故事的关键。
+    </p>
+
+    <div class="grid-3" style="align-content:start">
+      <div class="plat">
+        <div class="sub">D9 · Markdown</div>
+        <div class="name">Hermes Replay 规格</div>
+        <div class="body-zh" style="font-size:max(12px,.95vw); opacity:.7">确定性 · 原数据 hash 锁定 · 模型版本回滚 · 与生产隔离</div>
+      </div>
+      <div class="plat">
+        <div class="sub">D10 · Markdown + 自动化用例</div>
+        <div class="name">测试与验收脚本</div>
+        <div class="body-zh" style="font-size:max(12px,.95vw); opacity:.7">五条验收 → 60s · 完整性 · 快照 · append · replay 一致</div>
+      </div>
+      <div class="plat">
+        <div class="sub">D11 · Markdown</div>
+        <div class="name">威胁模型 & 攻击面</div>
+        <div class="body-zh" style="font-size:max(12px,.95vw); opacity:.7">主系统被攻陷时独立 Verifier 仍可证伪——销售故事的关键</div>
+      </div>
+      <div class="plat">
+        <div class="sub">D12 · 表格 + 案例</div>
+        <div class="name">跨监管口径映射</div>
+        <div class="body-zh" style="font-size:max(12px,.95vw); opacity:.7">EP 字段映射到 FINRA / SEC / 内审三类问询模板</div>
+      </div>
+      <div class="plat">
+        <div class="sub">D13 · Markdown</div>
+        <div class="name">数据保留与不可变性策略</div>
+        <div class="body-zh" style="font-size:max(12px,.95vw); opacity:.7">EP 保留年限 · 密钥轮换 · 签名链跨密钥延续</div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:1.6vh; padding-top:2vh; opacity:.55">
+        <div class="kicker" style="margin:0">milestone</div>
+        <div class="body-serif" style="font-size:max(13px,1.15vw); line-height:1.5">D11 + D12 齐 = 可正式邀约金融机构合规委员会评审。</div>
+      </div>
+    </div>
+  </div>
+  <div class="foot">
+    <div>Page 17 · P0-P1 补强</div>
+    <div>Part IV · MVP Gate</div>
+  </div>
+</section>
+
+<!-- ===================== 18 · P1-P2 EXPANSION ===================== -->
+<section class="slide light">
+  <div class="chrome">
+    <div>Part IV · P1-P2 扩散</div>
+    <div>18 / 22</div>
+  </div>
+  <div class="frame">
+    <div class="kicker">P1-P2 · 团队扩散与平台化</div>
+    <h2 class="h-xl" style="margin-bottom:2vh">D14 — D21 · 八份后续。</h2>
+
+    <div class="pipeline-section">
+      <div class="pipeline-label">P1 · 团队扩散阶段</div>
+      <div class="pipeline" data-cols="5">
+        <div class="step">
+          <div class="step-nb">D14</div>
+          <div class="step-title">顾问侧 EP 入口</div>
+          <div class="step-desc">Lin 的 chat 输出旁 EP 链接 · 自证清白</div>
+        </div>
+        <div class="step">
+          <div class="step-nb">D15</div>
+          <div class="step-title">通知规约</div>
+          <div class="step-desc">被审查方 / 升级路径 · 隐私边界</div>
+        </div>
+        <div class="step">
+          <div class="step-nb">D16</div>
+          <div class="step-title">架构演进地图</div>
+          <div class="step-desc">"为什么签名放 Mnem 而不是 Hermes"等关键决策</div>
+        </div>
+        <div class="step">
+          <div class="step-nb">D17</div>
+          <div class="step-title">关键文案库</div>
+          <div class="step-desc">中英 / 监管 / 客户 / 内部三层 · 统一对外用词</div>
+        </div>
+        <div class="step">
+          <div class="step-nb">D18</div>
+          <div class="step-title">销售一句话与 Demo 脚本</div>
+          <div class="step-desc">30s / 120s / 600s 三档</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pipeline-section">
+      <div class="pipeline-label">P2 · 平台化（与场景 ⑦ ⑩ ⑫ 联动）</div>
+      <div class="pipeline" data-cols="3">
+        <div class="step">
+          <div class="step-nb">D19</div>
+          <div class="step-title">跨执行批量取证 API</div>
+          <div class="step-desc">接合场景 ⑦ 跨顾问监督</div>
+        </div>
+        <div class="step">
+          <div class="step-nb">D20</div>
+          <div class="step-title">良性差异规则集</div>
+          <div class="step-desc">v2.3 PASS / v2.4 不合规自动归类——减少 Marcus 工作量</div>
+        </div>
+        <div class="step">
+          <div class="step-nb">D21</div>
+          <div class="step-title">SIEM / GRC 集成接口</div>
+          <div class="step-desc">与 AuditBoard / Archer 对接的 OpenAPI</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="foot">
+    <div>Page 18 · P1-P2 扩散</div>
+    <div>Part IV · Expansion</div>
+  </div>
+</section>
+
+<!-- ===================== 19 · RACI ===================== -->
+<section class="slide dark">
+  <div class="chrome">
+    <div>Part IV · 责任分工</div>
+    <div>19 / 22</div>
+  </div>
+  <div class="frame">
+    <div class="kicker">RACI · 责任分工摘要</div>
+    <h2 class="h-xl" style="margin-bottom:3vh">谁负责，谁问责。</h2>
+
+    <div class="raci">
+      <div class="head">Doc</div>
+      <div class="head">R · 负责</div>
+      <div class="head">A · 问责</div>
+      <div class="head">C · 咨询</div>
+      <div class="head">I · 知会</div>
+
+      <div class="doc">D1 系统宪法</div>
+      <div>院长</div>
+      <div>合规委员会</div>
+      <div>平台架构 / 法务</div>
+      <div>全员</div>
+
+      <div class="doc">D2 EP Schema</div>
+      <div>平台架构</div>
+      <div>CTO</div>
+      <div>合规 / Mnem 团队</div>
+      <div>QA / 安全</div>
+
+      <div class="doc">D3 Nomos × Mnem 绑定</div>
+      <div>Nomos Lead</div>
+      <div>CTO</div>
+      <div>Mnem Lead</div>
+      <div>合规</div>
+
+      <div class="doc">D4 独立验证工具</div>
+      <div>安全团队</div>
+      <div>CISO</div>
+      <div>平台架构</div>
+      <div>销售 / 客户 IT</div>
+
+      <div class="doc">D6 Audit Surface UX</div>
+      <div>设计 Lead</div>
+      <div>产品</div>
+      <div>合规 / 前端</div>
+      <div>销售</div>
+
+      <div class="doc">D9 Replay 规格</div>
+      <div>Hermes Lead</div>
+      <div>CTO</div>
+      <div>合规 / 安全</div>
+      <div>QA</div>
+
+      <div class="doc last">D10 验收脚本</div>
+      <div class="last">QA Lead</div>
+      <div class="last">产品</div>
+      <div class="last">合规 / 平台</div>
+      <div class="last">全员</div>
+    </div>
+  </div>
+  <div class="foot">
+    <div>Page 19 · RACI</div>
+    <div>Part IV · Ownership</div>
+  </div>
+</section>
+
+<!-- ===================== 20 · RISKS / UNKNOWNS / OPEN QUESTIONS ===================== -->
+<section class="slide light">
+  <div class="chrome">
+    <div>Closing · 风险与未知</div>
+    <div>20 / 22</div>
+  </div>
+  <div class="frame">
+    <div class="kicker">Risks · Unknowns · Open Questions</div>
+    <h2 class="h-xl" style="margin-bottom:4vh">三类九条，<br>需要被点名回答。</h2>
+
+    <div class="grid-3" style="align-content:start; gap:3vw">
+      <div style="display:flex; flex-direction:column; gap:1.6vh">
+        <div class="kicker" style="margin:0; opacity:.85">Risks · 风险</div>
+        <div class="body-serif" style="font-size:max(13px,1.05vw); opacity:.85">
+          <strong>SLA 在 200+ 节点下保不保？</strong><br>
+          需要分级降级策略 · 平台架构 + 合规
+        </div>
+        <div class="body-serif" style="font-size:max(13px,1.05vw); opacity:.85">
+          <strong>密钥轮换后旧 EP 怎么办？</strong><br>
+          签名链跨密钥延续 · 安全团队
+        </div>
+        <div class="body-serif" style="font-size:max(13px,1.05vw); opacity:.85">
+          <strong>模型版本下线后 replay 怎么对齐 hash？</strong><br>
+          供应商风险 · Hermes + 法务
+        </div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:1.6vh">
+        <div class="kicker" style="margin:0; opacity:.85">Unknowns · 未知</div>
+        <div class="body-serif" style="font-size:max(13px,1.05vw); opacity:.85">
+          <strong>"良性差异"判定归谁？</strong><br>
+          Nomos 还是 Audit Surface · 合规 + Nomos
+        </div>
+        <div class="body-serif" style="font-size:max(13px,1.05vw); opacity:.85">
+          <strong>审计 Record 与原 EP 同密钥？</strong><br>
+          还是审查角色独立密钥 · 安全 + 合规
+        </div>
+        <div class="body-serif" style="font-size:max(13px,1.05vw); opacity:.85">
+          <strong>外审能否在客户场所离线 verify？</strong><br>
+          独立工具的部署边界 · 安全 + 法务
+        </div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:1.6vh">
+        <div class="kicker" style="margin:0; opacity:.85">Open · 待答问题</div>
+        <div class="body-serif" style="font-size:max(13px,1.05vw); opacity:.85">
+          <strong>客户 IT 想"导出 EP 到自己 S3"？</strong><br>
+          边界与脱敏策略 · 合规 + 数据治理
+        </div>
+        <div class="body-serif" style="font-size:max(13px,1.05vw); opacity:.85">
+          <strong>红线 5 与场景 ③ "新契约新执行"？</strong><br>
+          如何在 EP 中显式表达成"链式 EP" · 平台架构
+        </div>
+        <div class="body-serif" style="font-size:max(13px,1.05vw); opacity:.85">
+          <strong>Marcus 处置是否双人复核？</strong><br>
+          四眼原则进入 Sealed · 合规委员会
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="foot">
+    <div>Page 20 · 风险与未知</div>
+    <div>Closing · Open</div>
+  </div>
+</section>
+
+<!-- ===================== 21 · ACTION TIMELINE ===================== -->
+<section class="slide dark">
+  <div class="chrome">
+    <div>Closing · 行动节奏</div>
+    <div>21 / 22</div>
+  </div>
+  <div class="frame">
+    <div class="kicker">Action · 八周时间表</div>
+    <h2 class="h-xl" style="margin-bottom:1.4vh">从工作坊，到合规委员会评审。</h2>
+    <p class="lead" style="opacity:.78; max-width:60vw; margin-bottom:5vh">
+      不要并行做超过自己能扛的份数——每两周交付一个里程碑，靠节奏赢，不靠堆人。
+    </p>
+
+    <div class="pipeline" data-cols="5" style="margin-top:2vh">
+      <div class="step">
+        <div class="step-nb">W1</div>
+        <div class="step-title">系统宪法 v0.1</div>
+        <div class="step-desc">院长 + 合规 + 平台架构 + Mnem + Nomos 五方 1.5h 工作坊 · D1</div>
+      </div>
+      <div class="step">
+        <div class="step-nb">W2</div>
+        <div class="step-title">两份核心规约</div>
+        <div class="step-desc">D2 EP Schema + D3 Nomos × Mnem 绑定并行起草</div>
+      </div>
+      <div class="step">
+        <div class="step-nb">W4</div>
+        <div class="step-title">独立验证工具</div>
+        <div class="step-desc">D4 规格 + 参考实现骨架——会场可演 demo</div>
+      </div>
+      <div class="step">
+        <div class="step-nb">W6</div>
+        <div class="step-title">UX 与验收</div>
+        <div class="step-desc">D6 Audit Surface UX + D10 验收脚本同时出</div>
+      </div>
+      <div class="step">
+        <div class="step-nb">W8</div>
+        <div class="step-title">合规委员会评审</div>
+        <div class="step-desc">D9 Replay + D11 威胁模型 + D12 跨监管口径——可邀约</div>
+      </div>
+    </div>
+
+    <div class="callout" style="margin-top:5vh">
+      <div class="q-big">持续</div>
+      把场景 ⑤ 的 D1–D13 沉淀为<span class="hi">"取证场景 Codex"</span>，作为场景 ⑦（跨顾问监督）和场景 ⑩（Nomos 治理规则发布）的引用基底，避免后续场景重复造文档。
+      <div class="callout-src">Continuous · 取证场景 Codex</div>
+    </div>
+  </div>
+  <div class="foot">
+    <div>Page 21 · 行动节奏</div>
+    <div>Closing · Action</div>
+  </div>
+</section>
+
+<!-- ===================== 22 · CLOSING QUOTE ===================== -->
+<section class="slide hero light">
+  <div class="chrome">
+    <div>Closing · 收尾金句</div>
+    <div>22 / 22</div>
+  </div>
+  <div class="frame" style="display:grid; gap:5vh; align-content:center; min-height:80vh">
+    <div class="kicker">The Takeaway · 一句话</div>
+    <blockquote style="font-family:var(--serif-zh); font-weight:700; font-size:6.4vw; line-height:1.18; letter-spacing:-.01em; max-width:78vw">
+      先有契约和工具，<br>UI 才能<span class="hi">可信地</span>存在。
+    </blockquote>
+    <p class="lead" style="max-width:60vw; opacity:.7">
+      Contracts and verifiers come first.<br>
+      Only then can the UI stand on something audit-grade.
+    </p>
+    <div class="meta-row">
+      <span>场景 ⑤ · ABC-Prime</span><span>·</span><span>编排式取证</span><span>·</span><span>Orchestrated Forensics · 2026</span>
+    </div>
+  </div>
+  <div class="foot">
+    <div>End of Deck · 22 / 22</div>
+    <div>— · —</div>
+  </div>
+</section>
+
+</div>
+
+<div id="nav"></div>
+
+<script>
+const VS = `attribute vec2 position;void main(){gl_Position=vec4(position,0.0,1.0);}`;
+
+const FS_DARK = `precision highp float;
+uniform vec2 u_resolution;uniform float u_time;uniform vec2 u_mouse;
+vec3 palette(float t,vec3 a,vec3 b,vec3 c,vec3 d){return a+b*cos(6.28318*(c*t+d));}
+void main(){
+  vec2 uv=gl_FragCoord.xy/u_resolution.xy;
+  vec2 p=uv*2.0-1.0;p.x*=u_resolution.x/u_resolution.y;
+  vec2 m=u_mouse*2.0-1.0;m.x*=u_resolution.x/u_resolution.y;
+  float md=length(p-m);
+  float mr=sin(md*15.0-u_time*4.0)*exp(-md*3.0);p+=mr*0.08;
+  vec2 p0=p;
+  for(float i=1.0;i<4.0;i++){
+    p.x+=0.1/i*sin(i*3.0*p.y+u_time*0.4)+0.05;
+    p.y+=0.1/i*cos(i*2.0*p.x+u_time*0.3)-0.05;
+  }
+  float r=length(p);float ang=atan(p.y,p.x);
+  vec3 a=vec3(0.12,0.12,0.13);
+  vec3 b=vec3(0.03,0.04,0.05);
+  vec3 c=vec3(1.0,1.0,1.0);
+  vec3 d=vec3(0.1,0.2,0.4);
+  vec3 col=palette(r*1.5+p0.x*0.5+u_time*0.1,a,b,c,d);
+  float disp=sin(r*25.0-u_time*1.5+ang*2.0)*0.5+0.5;
+  col+=vec3(disp*0.015,disp*0.01,disp*0.02);
+  float hi=pow(sin(p.x*4.0+p.y*3.0+u_time)*0.5+0.5,8.0);
+  col+=hi*0.08;
+  vec3 base=vec3(0.05,0.05,0.06);
+  col=mix(base,col,0.85);
+  gl_FragColor=vec4(col,1.0);
+}`;
+
+const FS_LIGHT = `precision highp float;
+uniform vec2 u_resolution;uniform float u_time;uniform vec2 u_mouse;
+float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+float noise(vec2 p){
+  vec2 i=floor(p),f=fract(p);
+  float a=hash(i),b=hash(i+vec2(1,0));
+  float c=hash(i+vec2(0,1)),d=hash(i+vec2(1,1));
+  vec2 u=f*f*(3.0-2.0*f);
+  return mix(a,b,u.x)+(c-a)*u.y*(1.0-u.x)+(d-b)*u.x*u.y;
+}
+float fbm(vec2 p){
+  float v=0.0,a=0.5;
+  mat2 m=mat2(0.80,0.60,-0.60,0.80);
+  for(int i=0;i<5;i++){v+=a*noise(p);p=m*p*2.02;a*=0.5;}
+  return v;
+}
+void main(){
+  vec2 uv=gl_FragCoord.xy/u_resolution.xy;
+  vec2 p=uv;p.x*=u_resolution.x/u_resolution.y;
+  vec2 m=u_mouse;m.x*=u_resolution.x/u_resolution.y;
+  vec2 md=p-m;float dl=length(md);
+  p+=normalize(md+vec2(0.0001))*exp(-dl*5.0)*0.03;
+  vec2 q=vec2(fbm(p*1.8+u_time*0.07),fbm(p*1.8+vec2(5.2,1.3)+u_time*0.06));
+  vec2 r=vec2(fbm(p*2.0+q*1.3+vec2(1.7,9.2)+u_time*0.05),
+              fbm(p*2.0+q*1.3+vec2(8.3,2.8)+u_time*0.04));
+  float f=fbm(p*2.2+r*1.5);
+  vec3 silverDark=vec3(0.86,0.85,0.84);
+  vec3 paper=vec3(0.955,0.945,0.925);
+  vec3 col=mix(silverDark,paper,f);
+  float ph=r.x*2.2+u_time*0.35;
+  col+=vec3(0.78,0.62,0.92)*sin(ph)*0.055;
+  col+=vec3(0.55,0.72,0.95)*sin(ph*0.8+2.0)*0.05;
+  float hl=smoothstep(0.48,0.92,f);
+  col+=hl*0.06;
+  gl_FragColor=vec4(col,1.0);
+}`;
+
+const mouse={x:0.5,y:0.5};
+addEventListener('mousemove',e=>{mouse.x=e.clientX/innerWidth;mouse.y=e.clientY/innerHeight});
+
+function bootGL(canvasId, fsSrc){
+  const canvas=document.getElementById(canvasId);
+  const gl=canvas.getContext('webgl',{alpha:false,antialias:true});
+  if(!gl) return ()=>false;
+  const mk=(t,s)=>{const sh=gl.createShader(t);gl.shaderSource(sh,s);gl.compileShader(sh);return sh};
+  const prog=gl.createProgram();
+  gl.attachShader(prog,mk(gl.VERTEX_SHADER,VS));
+  gl.attachShader(prog,mk(gl.FRAGMENT_SHADER,fsSrc));
+  gl.linkProgram(prog);gl.useProgram(prog);
+  const buf=gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER,buf);
+  gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]),gl.STATIC_DRAW);
+  const pos=gl.getAttribLocation(prog,'position');
+  gl.enableVertexAttribArray(pos);gl.vertexAttribPointer(pos,2,gl.FLOAT,false,0,0);
+  const lRes=gl.getUniformLocation(prog,'u_resolution');
+  const lT=gl.getUniformLocation(prog,'u_time');
+  const lM=gl.getUniformLocation(prog,'u_mouse');
+  const resize=()=>{
+    const d=Math.min(window.devicePixelRatio||1,2);
+    canvas.width=innerWidth*d;canvas.height=innerHeight*d;
+    gl.viewport(0,0,canvas.width,canvas.height);
+  };
+  addEventListener('resize',resize);resize();
+  return (tSec)=>{
+    gl.uniform2f(lRes,canvas.width,canvas.height);
+    gl.uniform1f(lT,tSec);
+    gl.uniform2f(lM,mouse.x,1-mouse.y);
+    gl.drawArrays(gl.TRIANGLES,0,6);
+    return true;
+  };
+}
+const drawDark=bootGL('bg-dark',FS_DARK);
+const drawLight=bootGL('bg-light',FS_LIGHT);
+const t0=Date.now();
+(function loop(){
+  const t=(Date.now()-t0)/1000;
+  drawDark(t);drawLight(t);
+  requestAnimationFrame(loop);
+})();
+
+// ============ 导航 ============
+const deck=document.getElementById('deck');
+const slides=deck.querySelectorAll('.slide');
+const nav=document.getElementById('nav');
+let idx=0,total=slides.length,lock=false;
+
+deck.style.width=(total*100)+'vw';
+
+slides.forEach((s,i)=>{
+  const b=document.createElement('button');
+  b.className='dot';b.dataset.i=i;b.setAttribute('aria-label','Page '+(i+1));
+  b.onclick=()=>go(i);
+  nav.appendChild(b);
+});
+
+function go(n){
+  if(lock)return;
+  idx=Math.max(0,Math.min(total-1,n));
+  deck.style.transform=`translateX(${-idx*100}vw)`;
+  nav.querySelectorAll('.dot').forEach((d,i)=>d.classList.toggle('active',i===idx));
+  const el=slides[idx];
+  const th=el.dataset.theme || (el.classList.contains('light')?'light':(el.classList.contains('dark')?'dark':'dark'));
+  document.body.classList.toggle('light-bg',th==='light');
+  lock=true;setTimeout(()=>lock=false,700);
+}
+
+let overviewOn=false;
+const ov=document.createElement('div');
+ov.id='overview';
+ov.style.cssText='position:fixed;inset:0;z-index:100;background:rgba(var(--ink-rgb),.92);backdrop-filter:blur(12px);display:none;overflow-y:auto;padding:4vh 4vw';
+document.body.appendChild(ov);
+
+function buildOverview(){
+  ov.innerHTML='';
+  const grid=document.createElement('div');
+  grid.style.cssText='display:grid;grid-template-columns:repeat(4,1fr);gap:2vh 1.6vw;max-width:90vw;margin:0 auto';
+  slides.forEach((s,i)=>{
+    const card=document.createElement('div');
+    card.style.cssText='cursor:pointer;border-radius:6px;overflow:hidden;border:2px solid '+(i===idx?'rgba(var(--paper-rgb),.8)':'rgba(var(--paper-rgb),.15)')+';transition:border-color .2s';
+    card.onmouseenter=()=>card.style.borderColor='rgba(var(--paper-rgb),.6)';
+    card.onmouseleave=()=>card.style.borderColor=i===idx?'rgba(var(--paper-rgb),.8)':'rgba(var(--paper-rgb),.15)';
+    const wrap=document.createElement('div');
+    wrap.style.cssText='width:100%;aspect-ratio:16/9;overflow:hidden;position:relative;pointer-events:none;background:'+(s.classList.contains('light')?'var(--paper)':'var(--ink)');
+    const clone=s.cloneNode(true);
+    clone.style.cssText='width:100vw;height:100vh;transform:scale('+(1/4.5)+');transform-origin:top left;position:absolute;top:0;left:0;pointer-events:none';
+    wrap.appendChild(clone);
+    const label=document.createElement('div');
+    label.style.cssText='padding:6px 10px;font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--paper);opacity:.7';
+    label.textContent=(i+1)+' / '+total;
+    card.appendChild(wrap);
+    card.appendChild(label);
+    card.onclick=()=>{toggleOverview();go(i)};
+    grid.appendChild(card);
+  });
+  ov.appendChild(grid);
+}
+
+function toggleOverview(){
+  overviewOn=!overviewOn;
+  if(overviewOn){buildOverview();ov.style.display='block';}
+  else{ov.style.display='none';}
+}
+
+addEventListener('keydown',e=>{
+  if(e.key==='Escape'){e.preventDefault();toggleOverview();return;}
+  if(overviewOn)return;
+  if(e.key==='ArrowRight'||e.key==='PageDown'||e.key===' '||e.key==='ArrowDown')go(idx+1);
+  if(e.key==='ArrowLeft'||e.key==='PageUp'||e.key==='ArrowUp')go(idx-1);
+  if(e.key==='Home')go(0);
+  if(e.key==='End')go(total-1);
+});
+
+let wheelTO=null,wheelAcc=0;
+addEventListener('wheel',e=>{
+  wheelAcc+=e.deltaY+e.deltaX;
+  if(Math.abs(wheelAcc)>50){go(idx+(wheelAcc>0?1:-1));wheelAcc=0;}
+  clearTimeout(wheelTO);wheelTO=setTimeout(()=>wheelAcc=0,150);
+},{passive:true});
+
+let tx=0,ty=0;
+addEventListener('touchstart',e=>{tx=e.touches[0].clientX;ty=e.touches[0].clientY},{passive:true});
+addEventListener('touchend',e=>{
+  const dx=(e.changedTouches[0].clientX-tx);
+  const dy=(e.changedTouches[0].clientY-ty);
+  if(Math.abs(dx)>50&&Math.abs(dx)>Math.abs(dy))go(idx+(dx<0?1:-1));
+},{passive:true});
+
+/* nav 圆点样式 · 与模板一致 */
+const navStyle=document.createElement('style');
+navStyle.textContent=`#nav{position:fixed;left:50%;bottom:2.6vh;transform:translateX(-50%);z-index:30;display:flex;gap:10px;padding:8px 14px;border-radius:999px;background:rgba(0,0,0,.18);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+#nav .dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.3);cursor:pointer;transition:all .3s ease;border:0;padding:0}
+#nav .dot:hover{background:rgba(255,255,255,.5);transform:scale(1.15)}
+#nav .dot.active{background:rgba(255,255,255,.95);width:22px;border-radius:999px}
+body.light-bg #nav{background:rgba(255,255,255,.25)}
+body.light-bg #nav .dot{background:rgba(var(--ink-rgb),.25)}
+body.light-bg #nav .dot.active{background:rgba(var(--ink-rgb),.9)}`;
+document.head.appendChild(navStyle);
+
+go(0);
+</script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script>lucide.createIcons();</script>
+</body>
+</html>
